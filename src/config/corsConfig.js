@@ -1,4 +1,4 @@
-import cors from "cors";
+const cors = require("cors");
 
 const whitelist = ["http://localhost:3000"]; //white list consumers
 const corsOptions = {
@@ -23,4 +23,4 @@ const corsOptions = {
   ],
 };
 
-export default cors(corsOptions);
+module.exports = cors(corsOptions);

@@ -1,16 +1,16 @@
 const Conversations = [
   {
     name: "IUH_CNM_HK2",
-    userList: [],
+    members: [],
   },
   {
     name: "IUH_CNM_HK1",
-    userList: [],
+    members: [],
   },
   {
     name: "IUH_CNM_HK3",
-    userList: [],
+    members: [],
   },
 ];
 
-export default Conversations;
+module.exports = Conversations;

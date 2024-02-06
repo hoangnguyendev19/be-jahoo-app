@@ -1,11 +1,11 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const conversationSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
+      default: "",
     },
     isDeleted: {
       type: Boolean,
@@ -15,7 +15,7 @@ const conversationSchema = new Schema(
       type: mongoose.Schema.ObjectId,
       ref: "User",
     },
-    userList: [
+    members: [
       {
         type: mongoose.Schema.ObjectId,
         ref: "User",
@@ -46,4 +46,4 @@ const conversationSchema = new Schema(
 
 const Conversation = mongoose.model("conversation", conversationSchema);
 
-export default Conversation;
+module.exports = Conversation;

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const messageSchema = new Schema(
@@ -12,21 +12,17 @@ const messageSchema = new Schema(
       enum: ["TEXT", "IMAGE", "AUDIO", "VIDEO", "FILE"],
       required: true,
     },
-    isDeleted: {
+    isRevoked: {
       type: Boolean,
       default: false,
-    },
-    deletedUserId: {
-      type: mongoose.Schema.ObjectId,
-      ref: "User",
-    },
-    replyMessageId: {
-      type: mongoose.Schema.ObjectId,
-      ref: "Message",
     },
     conversationId: {
       type: mongoose.Schema.ObjectId,
       ref: "Conversation",
+    },
+    senderId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
     },
     likes: [
       {
@@ -52,4 +48,4 @@ const messageSchema = new Schema(
 
 const Message = mongoose.model("message", messageSchema);
 
-export default Message;
+module.exports = Message;

@@ -1,11 +1,11 @@
-import dotenv from "dotenv";
-import connectDB from "./connectDB.js";
-import Message from "../models/Message.js";
-import Messages from "../data/Messages.js";
-import User from "../models/User.js";
-import Users from "../data/users.js";
-import Conversation from "../models/Conversation.js";
-import Conversations from "../data/Conversations.js";
+const dotenv = require("dotenv");
+const connectDB = require("./connectDB");
+const Message = require("../models/messageModel");
+const User = require("../models/userModel");
+const Conversation = require("../models/conversationModel");
+const Messages = require("../data/messages");
+const Users = require("../data/users");
+const Conversations = require("../data/conversations");
 
 dotenv.config();
 

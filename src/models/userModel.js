@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
@@ -22,7 +22,7 @@ const userSchema = new Schema(
       required: true,
       trim: true,
       unique: true,
-      length: [10, "Phone number has ten digits"],
+      length: 10,
     },
     password: {
       type: String,
@@ -42,7 +42,13 @@ const userSchema = new Schema(
         ref: "User",
       },
     ],
-    friendRequestList: [
+    sendedRequestList: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+    ],
+    receivedRequestList: [
       {
         type: mongoose.Schema.ObjectId,
         ref: "User",
@@ -93,6 +99,10 @@ userSchema.pre("save", function (next) {
   next();
 });
 
+userSchema.methods.checkPassword = async (inputPassword, userPassword) => {
+  return await bcrypt.compare(inputPassword, userPassword);
+};
+
 const User = mongoose.model("User", userSchema);
 
-export default User;
+module.exports = User;
