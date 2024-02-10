@@ -37,3 +37,8 @@ exports.validateMessage = [
 exports.validateConversation = [
   body("members", "Members is at least two members").isArray({ min: 2 }),
 ];
+
+exports.validateProfile = [
+  body("gender", "Gender is a boolean type").isBoolean(),
+  body("dateOfBirth", "Date of birth have yyyy-mm-dd format").isDate(),
+];

@@ -17,4 +17,10 @@ router.post(
   messageController.createMessage
 );
 
+router.put(
+  "/:messageId",
+  authMiddleware.protect,
+  messageController.revokeMessage
+);
+
 module.exports = router;

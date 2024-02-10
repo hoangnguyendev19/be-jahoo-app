@@ -12,8 +12,8 @@ router.delete("/logout", authMiddleware.protect, userController.logout);
 
 router
   .route("/profile")
-  .get(authMiddleware.protect, userController.getUserProfile);
-// .put(authMiddleware.protect, userController.updateUserProfile);
+  .get(authMiddleware.protect, userController.getUserProfile)
+  .put(authMiddleware.protect, userController.updateUserProfile);
 
 router.put(
   "/update-password",

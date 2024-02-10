@@ -43,9 +43,11 @@ exports.createMessage = async (req, res) => {
 exports.revokeMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const message = await Message.findById(messageId);
-    if (message && message.senderId === req.user._id) {
+    let message = await Message.findById(messageId);
+    if (message && message.senderId.toString() === req.user._id.toString()) {
       message.isRevoked = true;
+      message.updatedAt = Date.now();
+      await message.save();
       return res.status(200).json({
         status: "success",
         message: "You revoked this message successfully!",

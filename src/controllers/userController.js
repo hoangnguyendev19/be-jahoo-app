@@ -140,7 +140,7 @@ exports.signup = async (req, res) => {
     } else {
       return res
         .status(400)
-        .json({ status: "fail", message: "Invalid user data" });
+        .json({ status: "fail", message: "User is invalid" });
     }
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -177,11 +177,12 @@ exports.updatePassword = async (req, res) => {
     }
 
     user.password = newPassword;
+    user.updatedAt = Date.now();
     await user.save();
 
     res.status(200).json({
       status: "success",
-      message: "You updated password successfully!",
+      message: "You updated this password successfully!",
     });
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -196,12 +197,12 @@ exports.getUserProfile = async (req, res) => {
     if (user) {
       return res.status(200).json({
         status: "success",
-        data: user,
+        data: { user },
       });
     } else {
       return res.status(404).json({
         status: "fail",
-        message: "User not found",
+        message: "User is not found",
       });
     }
   } catch (error) {
@@ -210,25 +211,40 @@ exports.getUserProfile = async (req, res) => {
 };
 
 // Update user profile
-// exports.updateUserProfile = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.user._id).select("-password");
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const errors = validationResult(req.body);
+    if (!errors.isEmpty) {
+      return res
+        .status(422)
+        .json({ status: "fail", message: errors.array()[0].msg });
+    }
+    const { fullName, gender, dateOfBirth, avatarUrl, coverImage } = req.body;
+    let user = await User.findById(req.user._id).select("-password");
 
-//     if (user) {
-//       return res.status(200).json({
-//         status: "success",
-//         data: user,
-//       });
-//     } else {
-//       return res.status(404).json({
-//         status: "fail",
-//         message: "User not found",
-//       });
-//     }
-//   } catch (error) {
-//     return res.status(500).json({ status: "fail", message: error.message });
-//   }
-// };
+    if (user) {
+      user.fullName = fullName;
+      user.gender = gender;
+      user.dateOfBirth = dateOfBirth;
+      user.avatarUrl = avatarUrl;
+      user.coverImage = coverImage;
+      user.updatedAt = Date.now();
+
+      await user.save();
+      return res.status(200).json({
+        status: "success",
+        message: "You updated this profile successfully!",
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "User is not found",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
 
 // Request friend
 exports.requestFriend = async (req, res) => {
@@ -243,12 +259,13 @@ exports.requestFriend = async (req, res) => {
       await friend.save();
       return res.status(200).json({
         status: "success",
-        message: "You requested friend successfully!",
+        message: "You requested this friend successfully!",
       });
     } else {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "You requested friend failure!" });
+      return res.status(404).json({
+        status: "fail",
+        message: "You requested this friend failure!",
+      });
     }
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -274,12 +291,12 @@ exports.acceptFriend = async (req, res) => {
       await friend.save();
       return res.status(200).json({
         status: "success",
-        message: "You accepted friend successfully!",
+        message: "You accepted this friend successfully!",
       });
     } else {
       return res
         .status(404)
-        .json({ status: "fail", message: "You accepted friend failure!" });
+        .json({ status: "fail", message: "You accepted this friend failure!" });
     }
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -303,12 +320,12 @@ exports.revokeFriend = async (req, res) => {
       await friend.save();
       return res.status(200).json({
         status: "success",
-        message: "You revoked friend successfully!",
+        message: "You revoked friend this successfully!",
       });
     } else {
       return res
         .status(404)
-        .json({ status: "fail", message: "You revoked friend failure!" });
+        .json({ status: "fail", message: "You revoked this friend failure!" });
     }
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -332,12 +349,12 @@ exports.deleteFriend = async (req, res) => {
       await friend.save();
       return res.status(200).json({
         status: "success",
-        message: "You deleted friend successfully!",
+        message: "You deleted this friend successfully!",
       });
     } else {
       return res.status(404).json({
         status: "fail",
-        message: "You deleted friend failure!",
+        message: "You deleted this friend failure!",
       });
     }
   } catch (error) {

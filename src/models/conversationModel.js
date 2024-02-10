@@ -11,7 +11,7 @@ const conversationSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    deletedUserId: {
+    admin: {
       type: mongoose.Schema.ObjectId,
       ref: "User",
     },

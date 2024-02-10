@@ -76,20 +76,6 @@ const userSchema = new Schema(
   }
 );
 
-// userSchema.virtual("userConversation", {
-//   ref: "Conversation",
-//   localField: "_id",
-//   foreignField: "conversation",
-//   justOne: false,
-// });
-
-// userSchema.virtual("users", {
-//   ref: "User",
-//   localField: "_id",
-//   foreignField: "User",
-//   justOne: false,
-// });
-
 userSchema.pre("save", function (next) {
   if (!this.isModified("password")) {
     return next();
