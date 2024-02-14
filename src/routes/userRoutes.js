@@ -11,9 +11,9 @@ router.delete("/logout", authMiddleware.protect, userController.logout);
 // router.post("/refreshToken", userController.requestRefreshToken);
 
 router
-  .route("/profile")
-  .get(authMiddleware.protect, userController.getUserProfile)
-  .put(authMiddleware.protect, userController.updateUserProfile);
+  .route("/me")
+  .get(authMiddleware.protect, userController.getMe)
+  .put(authMiddleware.protect, userController.updateMe);
 
 router.put(
   "/update-password",
@@ -34,6 +34,12 @@ router.put(
 );
 
 router.put(
+  "/delete-accept-friend/:friendId",
+  authMiddleware.protect,
+  userController.deleteAcceptFriend
+);
+
+router.put(
   "/revoke-friend/:friendId",
   authMiddleware.protect,
   userController.revokeFriend
@@ -44,5 +50,8 @@ router.put(
   authMiddleware.protect,
   userController.deleteFriend
 );
+
+router.get("/:userId", userController.getUserProfile);
+router.get("/", userController.getUserProfileByPhoneNumber);
 
 module.exports = router;

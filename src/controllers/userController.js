@@ -93,7 +93,23 @@ exports.login = async (req, res) => {
     //   sameSite: "strict",
     // });
 
-    user = await User.findOne({ phoneNumber }).select("-password");
+    user = await User.findOne({ phoneNumber })
+      .select("-password")
+      .populate({
+        path: "friendList",
+        model: "User",
+        select: "fullName avatarUrl",
+      })
+      .populate({
+        path: "sendedRequestList",
+        model: "User",
+        select: "fullName avatarUrl",
+      })
+      .populate({
+        path: "receivedRequestList",
+        model: "User",
+        select: "fullName avatarUrl",
+      });
 
     return res.status(200).json({
       status: "success",
@@ -126,16 +142,29 @@ exports.signup = async (req, res) => {
     }
     const newUser = await User.create(req.body);
 
-    const accessToken = signToken(newUser._id);
-
     if (newUser) {
-      const user = await User.findById(newUser._id).select("-password");
+      const accessToken = signToken(newUser._id);
+      const user = await User.findById(newUser.id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
       return res.status(200).json({
         status: "success",
-        data: {
-          user,
-          accessToken,
-        },
+        data: { user, accessToken },
       });
     } else {
       return res
@@ -189,15 +218,31 @@ exports.updatePassword = async (req, res) => {
   }
 };
 
-// Get user profile
-exports.getUserProfile = async (req, res) => {
+// Get me
+exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .populate({
+        path: "friendList",
+        model: "User",
+        select: "fullName avatarUrl",
+      })
+      .populate({
+        path: "sendedRequestList",
+        model: "User",
+        select: "fullName avatarUrl",
+      })
+      .populate({
+        path: "receivedRequestList",
+        model: "User",
+        select: "fullName avatarUrl",
+      });
 
     if (user) {
       return res.status(200).json({
         status: "success",
-        data: { user },
+        data: user,
       });
     } else {
       return res.status(404).json({
@@ -210,8 +255,52 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
-// Update user profile
-exports.updateUserProfile = async (req, res) => {
+// Get user profile
+exports.getUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select("-password");
+
+    if (user) {
+      return res.status(200).json({
+        status: "success",
+        data: user,
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "User is not found",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+// Get user profile by phone number
+exports.getUserProfileByPhoneNumber = async (req, res) => {
+  try {
+    const { phoneNumber } = req.query;
+    const user = await User.findOne({ phoneNumber }).select("-password");
+
+    if (user) {
+      return res.status(200).json({
+        status: "success",
+        data: user,
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "User is not found",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+// Update me
+exports.updateMe = async (req, res) => {
   try {
     const errors = validationResult(req.body);
     if (!errors.isEmpty) {
@@ -231,9 +320,28 @@ exports.updateUserProfile = async (req, res) => {
       user.updatedAt = Date.now();
 
       await user.save();
+
+      const newUser = await User.findById(req.user._id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
       return res.status(200).json({
         status: "success",
-        message: "You updated this profile successfully!",
+        data: newUser,
       });
     } else {
       return res.status(404).json({
@@ -257,9 +365,28 @@ exports.requestFriend = async (req, res) => {
       await user.save();
       friend.receivedRequestList.push(req.user._id);
       await friend.save();
+
+      const newUser = await User.findById(req.user._id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
       return res.status(200).json({
         status: "success",
-        message: "You requested this friend successfully!",
+        data: newUser,
       });
     } else {
       return res.status(404).json({
@@ -289,14 +416,82 @@ exports.acceptFriend = async (req, res) => {
       );
       await user.save();
       await friend.save();
+
+      const newUser = await User.findById(req.user._id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
       return res.status(200).json({
         status: "success",
-        message: "You accepted this friend successfully!",
+        data: newUser,
       });
     } else {
       return res
         .status(404)
         .json({ status: "fail", message: "You accepted this friend failure!" });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+// Delete Accept friend
+exports.deleteAcceptFriend = async (req, res) => {
+  try {
+    const { friendId } = req.params;
+    let user = await User.findById(req.user._id);
+    let friend = await User.findById(friendId);
+    if (user && friend) {
+      user.receivedRequestList = user.receivedRequestList.filter(
+        (userId) => userId.toString() !== friendId
+      );
+      friend.sendedRequestList = friend.sendedRequestList.filter(
+        (userId) => userId.toString() !== req.user._id.toString()
+      );
+      await user.save();
+      await friend.save();
+
+      const newUser = await User.findById(req.user._id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
+      return res.status(200).json({
+        status: "success",
+        data: newUser,
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "You deleted this accept friend failure!",
+      });
     }
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -318,9 +513,28 @@ exports.revokeFriend = async (req, res) => {
       );
       await user.save();
       await friend.save();
+
+      const newUser = await User.findById(req.user._id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
       return res.status(200).json({
         status: "success",
-        message: "You revoked friend this successfully!",
+        data: newUser,
       });
     } else {
       return res
@@ -347,9 +561,28 @@ exports.deleteFriend = async (req, res) => {
       );
       await user.save();
       await friend.save();
+
+      const newUser = await User.findById(req.user._id)
+        .select("-password")
+        .populate({
+          path: "friendList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "sendedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        })
+        .populate({
+          path: "receivedRequestList",
+          model: "User",
+          select: "fullName avatarUrl",
+        });
+
       return res.status(200).json({
         status: "success",
-        message: "You deleted this friend successfully!",
+        data: newUser,
       });
     } else {
       return res.status(404).json({

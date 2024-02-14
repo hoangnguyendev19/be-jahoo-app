@@ -9,9 +9,7 @@ exports.getAllMessageForConversation = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      data: {
-        messages,
-      },
+      data: messages,
     });
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
@@ -29,7 +27,7 @@ exports.createMessage = async (req, res) => {
 
     const message = await Message.create(req.body);
     if (message) {
-      return res.status(200).json({ status: "success", data: { message } });
+      return res.status(200).json({ status: "success", data: message });
     } else {
       return res
         .status(400)

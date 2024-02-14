@@ -7,8 +7,12 @@ exports.getAllConversationForUser = async (req, res) => {
   try {
     const conversations = await Conversation.find({
       members: { $in: [req.user._id] },
+    }).populate({
+      path: "members",
+      model: "User",
+      select: "fullName avatarUrl",
     });
-    return res.status(200).json({ status: "success", data: { conversations } });
+    return res.status(200).json({ status: "success", data: conversations });
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });
   }
@@ -25,9 +29,19 @@ exports.createConversation = async (req, res) => {
     const conversation = await Conversation.create(req.body);
     if (conversation) {
       await conversation.save();
-      return res
-        .status(200)
-        .json({ status: "success", data: { conversation } });
+
+      const newConversation = await Conversation.findById(
+        conversation.id
+      ).populate({
+        path: "members",
+        model: "User",
+        select: "fullName avatarUrl",
+      });
+
+      return res.status(200).json({
+        status: "success",
+        data: newConversation,
+      });
     }
   } catch (error) {
     return res.status(500).json({ status: "fail", message: error.message });

@@ -21,6 +21,11 @@ const conversationSchema = new Schema(
         ref: "User",
       },
     ],
+    type: {
+      type: String,
+      enum: ["GROUP", "FRIEND"],
+      required: true,
+    },
     createdAt: {
       type: Date,
       default: Date.now(),
