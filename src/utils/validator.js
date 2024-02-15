@@ -36,6 +36,9 @@ exports.validateMessage = [
 
 exports.validateConversation = [
   body("members", "Members is at least two members").isArray({ min: 2 }),
+  body("type", "Type includes GROUP and FRIEND").matches(
+    /\b(?:GROUP|FRIEND)\b/
+  ),
 ];
 
 exports.validateProfile = [

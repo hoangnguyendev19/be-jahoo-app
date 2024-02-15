@@ -26,7 +26,9 @@ exports.createConversation = async (req, res) => {
         .status(422)
         .json({ status: "fail", message: errors.array()[0].msg });
     }
+
     const conversation = await Conversation.create(req.body);
+
     if (conversation) {
       await conversation.save();
 
@@ -202,7 +204,10 @@ exports.deleteConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
     const conversation = await Conversation.findById(conversationId);
-    if (conversation.admin.toString() !== req.user._id.toString()) {
+    if (
+      conversation.type === "GROUP" &&
+      conversation.admin.toString() !== req.user._id.toString()
+    ) {
       return res.status(401).json({
         status: "fail",
         message: "You are not admin for this conversation",
