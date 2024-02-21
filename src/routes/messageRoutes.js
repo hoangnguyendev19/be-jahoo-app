@@ -6,7 +6,7 @@ const validator = require("../utils/validator");
 const router = express.Router();
 
 router.get(
-  "/:conversationId",
+  "/",
   authMiddleware.protect,
   messageController.getAllMessageForConversation
 );

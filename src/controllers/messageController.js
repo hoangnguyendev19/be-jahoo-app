@@ -4,10 +4,16 @@ const { validationResult } = require("express-validator");
 
 exports.getAllMessageForConversation = async (req, res) => {
   try {
-    const { conversationId } = req.params;
-    const messages = await Message.find({ conversationId });
+    const { conversation } = req.query;
+    const messages = await Message.find({
+      conversationId: conversation,
+    }).populate({
+      path: "senderId",
+      model: "User",
+      select: "fullName avatarUrl",
+    });
 
-    res.status(200).json({
+    return res.status(200).json({
       status: "success",
       data: messages,
     });
@@ -41,14 +47,19 @@ exports.createMessage = async (req, res) => {
 exports.revokeMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    let message = await Message.findById(messageId);
+    let message = await Message.findById(messageId).populate({
+      path: "senderId",
+      model: "User",
+      select: "fullName avatarUrl",
+    });
+
     if (message && message.senderId.toString() === req.user._id.toString()) {
       message.isRevoked = true;
-      message.updatedAt = Date.now();
       await message.save();
+
       return res.status(200).json({
         status: "success",
-        message: "You revoked this message successfully!",
+        data: message,
       });
     } else {
       return res
