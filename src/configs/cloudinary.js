@@ -12,7 +12,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     resource_type: "auto",
-    folder: "IMAGE_MESSAGE",
+    folder: "STORAGE",
     allowedFormats: ["jpg", "png", "mp4"],
   },
 });

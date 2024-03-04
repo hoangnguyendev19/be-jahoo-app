@@ -68,7 +68,9 @@ const socket = (io) => {
       let message = await Message.findById(messageId);
 
       if (message) {
-        message.likes = message.likes.filter((uid) => uid !== userId);
+        message.likes = message.likes.filter(
+          (uid) => uid.toString() !== userId
+        );
         await message.save();
 
         io.to(message.conversationId.toString()).emit(

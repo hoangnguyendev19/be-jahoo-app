@@ -308,6 +308,7 @@ exports.updateMe = async (req, res) => {
         .status(422)
         .json({ status: "fail", message: errors.array()[0].msg });
     }
+    console.log(req.body);
     const { fullName, gender, dateOfBirth, avatarUrl, coverImage } = req.body;
     let user = await User.findById(req.user._id).select("-password");
 

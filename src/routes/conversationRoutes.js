@@ -10,6 +10,7 @@ router.get(
   authMiddleware.protect,
   conversationController.getAllConversationForUser
 );
+
 router.post(
   "/",
   validator.validateConversation,
@@ -18,31 +19,37 @@ router.post(
 );
 
 router.put(
-  "/:conversationId/assign-admin",
+  "/:id/assign-admin",
   authMiddleware.protect,
   conversationController.assignAdminForConversation
 );
 
 router.put(
-  "/:conversationId/remove-user",
+  "/:id/remove-user",
   authMiddleware.protect,
   conversationController.removeUserForConversation
 );
 
 router.put(
-  "/:conversationId/remove-yourself",
+  "/:id/remove-yourself",
   authMiddleware.protect,
   conversationController.removeYourselfForConversation
 );
 
 router.put(
-  "/:conversationId/add-user",
+  "/:id/add-user",
   authMiddleware.protect,
   conversationController.addUserForConversation
 );
 
+router.get(
+  "/:id",
+  authMiddleware.protect,
+  conversationController.getConversationById
+);
+
 router.delete(
-  "/:conversationId",
+  "/:id",
   authMiddleware.protect,
   conversationController.deleteConversation
 );

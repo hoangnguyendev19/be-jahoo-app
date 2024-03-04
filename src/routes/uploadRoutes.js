@@ -9,8 +9,6 @@ router.post("/upload-file", fileUploader.single("file"), (req, res, next) => {
     return;
   }
 
-  console.log(req.file);
-
   return res.json({ status: "success", data: req.file.path });
 });
 

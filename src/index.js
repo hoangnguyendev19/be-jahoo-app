@@ -18,13 +18,13 @@ const PORT = process.env.PORT || 5001;
 const app = express();
 connectDB();
 
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: "*", allowedHeaders: "*" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: false }));
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } });
 
 // Router
 app.use("/api/v1/users", userRoutes);

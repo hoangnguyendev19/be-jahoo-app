@@ -18,6 +18,21 @@ exports.getAllConversationForUser = async (req, res) => {
   }
 };
 
+exports.getConversationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conversation = await Conversation.findById(id).populate({
+      path: "members",
+      model: "User",
+      select: "fullName avatarUrl",
+    });
+
+    return res.status(200).json({ status: "success", data: conversation });
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
 exports.createConversation = async (req, res) => {
   try {
     const errors = validationResult(req.body);
@@ -53,9 +68,9 @@ exports.createConversation = async (req, res) => {
 exports.assignAdminForConversation = async (req, res) => {
   try {
     const { userId } = req.body;
-    const { conversationId } = req.params;
+    const { id } = req.params;
     const user = await User.findById(userId);
-    let conversation = await Conversation.findById(conversationId);
+    let conversation = await Conversation.findById(id);
     if (user && conversation) {
       if (conversation.admin.toString() !== req.user._id.toString()) {
         return res.status(401).json({
@@ -90,9 +105,9 @@ exports.assignAdminForConversation = async (req, res) => {
 exports.removeUserForConversation = async (req, res) => {
   try {
     const { userId } = req.body;
-    const { conversationId } = req.params;
+    const { id } = req.params;
     const user = await User.findById(userId);
-    let conversation = await Conversation.findById(conversationId);
+    let conversation = await Conversation.findById(id);
     if (user && conversation) {
       if (conversation.admin.toString() !== req.user._id.toString()) {
         return res.status(401).json({
@@ -112,7 +127,7 @@ exports.removeUserForConversation = async (req, res) => {
         (memId) => memId.toString() !== userId
       );
       if (conversation.members.length === 1) {
-        await Conversation.findByIdAndDelete(conversationId);
+        await Conversation.findByIdAndDelete(id);
       } else {
         await conversation.save();
       }
@@ -133,8 +148,8 @@ exports.removeUserForConversation = async (req, res) => {
 
 exports.removeYourselfForConversation = async (req, res) => {
   try {
-    const { conversationId } = req.params;
-    let conversation = await Conversation.findById(conversationId);
+    const { id } = req.params;
+    let conversation = await Conversation.findById(id);
     if (!conversation) {
       return res
         .status(404)
@@ -153,7 +168,7 @@ exports.removeYourselfForConversation = async (req, res) => {
       (memId) => memId.toString() !== req.user._id.toString()
     );
     if (conversation.members.length === 1) {
-      await Conversation.findByIdAndDelete(conversationId);
+      await Conversation.findByIdAndDelete(id);
     } else {
       await conversation.save();
     }
@@ -170,10 +185,10 @@ exports.removeYourselfForConversation = async (req, res) => {
 exports.addUserForConversation = async (req, res) => {
   try {
     const { userId } = req.body;
-    const { conversationId } = req.params;
+    const { id } = req.params;
 
-    const user = await User.findById(userId);
-    const conversation = await Conversation.findById(conversationId);
+    const user = await User.findById(userId).populate("fullName avatarUrl");
+    const conversation = await Conversation.findById(id);
 
     if (conversation && user) {
       if (!conversation.members.includes(req.user._id.toString())) {
@@ -187,7 +202,7 @@ exports.addUserForConversation = async (req, res) => {
       await conversation.save();
       return res.status(200).json({
         status: "success",
-        message: "You added user for this conversation successfully!",
+        data: user,
       });
     } else {
       return res.status(404).json({
@@ -202,8 +217,8 @@ exports.addUserForConversation = async (req, res) => {
 
 exports.deleteConversation = async (req, res) => {
   try {
-    const { conversationId } = req.params;
-    const conversation = await Conversation.findById(conversationId);
+    const { id } = req.params;
+    const conversation = await Conversation.findById(id);
     if (
       conversation.type === "GROUP" &&
       conversation.admin.toString() !== req.user._id.toString()
@@ -214,7 +229,7 @@ exports.deleteConversation = async (req, res) => {
       });
     }
 
-    await Conversation.findByIdAndDelete(conversationId);
+    await Conversation.findByIdAndDelete(id);
     return res.status(200).json({
       status: "success",
       message: "You deleted this conversation successfully!",
