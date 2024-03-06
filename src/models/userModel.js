@@ -54,12 +54,6 @@ const userSchema = new Schema(
         ref: "User",
       },
     ],
-    conversationList: [
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: "Conversation",
-      },
-    ],
     createdAt: {
       type: Date,
       default: Date.now,

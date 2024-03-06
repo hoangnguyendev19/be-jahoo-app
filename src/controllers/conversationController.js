@@ -1,6 +1,7 @@
 const createHttpError = require("http-errors");
 const Conversation = require("../models/conversationModel");
 const User = require("../models/userModel");
+const Message = require("../models/messageModel");
 const { validationResult } = require("express-validator");
 
 exports.getAllConversationForUser = async (req, res) => {
@@ -228,7 +229,7 @@ exports.deleteConversation = async (req, res) => {
         message: "You are not admin for this conversation",
       });
     }
-
+    await Message.deleteMany({ conversationId: id });
     await Conversation.findByIdAndDelete(id);
     return res.status(200).json({
       status: "success",
