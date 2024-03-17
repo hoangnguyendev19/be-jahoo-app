@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const createHttpError = require("http-errors");
 const User = require("../models/userModel");
 const { validationResult } = require("express-validator");
+const transporter = require("../configs/nodemailer");
 
 dotenv.config();
 
@@ -94,7 +95,9 @@ exports.login = async (req, res) => {
     // });
 
     user = await User.findOne({ phoneNumber })
-      .select("-password")
+      .select(
+        "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+      )
       .populate({
         path: "friendList",
         model: "User",
@@ -145,7 +148,9 @@ exports.signup = async (req, res) => {
     if (newUser) {
       const accessToken = signToken(newUser._id);
       const user = await User.findById(newUser.id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",
@@ -218,11 +223,137 @@ exports.updatePassword = async (req, res) => {
   }
 };
 
+// Forgot password
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "fail", message: "User not found" });
+    }
+
+    // Generate a password reset token and set its expiration date
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_RESET_PASSWORD_SECRET,
+      { expiresIn: process.env.JWT_RESET_PASSWORD_EXPIRES_IN }
+    );
+
+    user.passwordResetToken = token;
+    user.passwordResetExpires = Date.now() + 60000 * 15; // 15 minutes
+    await user.save();
+
+    // const resetUrl = `http://${req.headers.host}/api/v1/users/reset-password/${token}`;
+    const resetUrl = `http://localhost:5000/api/v1/users/reset-password/${token}`;
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Yêu cầu làm mới mật khẩu",
+      html: `
+      <p>Bạn muốn làm mới mật khẩu. Hãy click vào đường link dưới đây:</p>
+      <a href="${resetUrl}">Làm mới mật khẩu</a>
+    `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res
+      .status(200)
+      .json({ status: "success", message: "Password reset email sent" });
+  } catch (err) {
+    console.error("Failed to send password reset email:", err);
+    res
+      .status(500)
+      .json({ status: "fail", message: "Failed to send password reset email" });
+  }
+};
+
+// Reset password
+exports.resetPassword = async (req, res) => {
+  const { token } = req.params;
+  let decodedToken;
+  try {
+    decodedToken = jwt.verify(token, process.env.JWT_RESET_PASSWORD_SECRET);
+  } catch (err) {
+    return res.status(200).sendFile("error.html", { root: "./src/views" });
+  }
+
+  try {
+    const user = await User.findOne({
+      _id: decodedToken.id,
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        status: "fail",
+        message: "User not found or token is invalid or expired",
+      });
+    }
+
+    // Generate a random password for the user
+    const newPassword = Math.random().toString(36).slice(-10).toUpperCase();
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    // Send a confirmation email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Xác nhận làm mới mật khẩu",
+      html: `
+      <p>Mật khẩu mới của bạn: ${newPassword}</p>
+      <p>Nếu bạn không yêu cầu làm mới mật khẩu, hãy đổi mật khẩu ngay lập tức.</p>
+    `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).sendFile("success.html", { root: "./src/views" });
+  } catch (err) {
+    console.error("Failed to send password reset confirmation email:", err);
+    res.status(500).json({
+      status: "fail",
+      message: "Failed to send password reset confirmation email",
+    });
+  }
+};
+
+// Get all users
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select(
+      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+    );
+
+    if (users) {
+      return res.status(200).json({
+        status: "success",
+        data: users,
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "Users are not found",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
 // Get me
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-      .select("-password")
+      .select(
+        "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+      )
       .populate({
         path: "friendList",
         model: "User",
@@ -259,7 +390,9 @@ exports.getMe = async (req, res) => {
 exports.getUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId).select(
+      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+    );
 
     if (user) {
       return res.status(200).json({
@@ -281,7 +414,9 @@ exports.getUserProfile = async (req, res) => {
 exports.getUserProfileByPhoneNumber = async (req, res) => {
   try {
     const { phoneNumber } = req.query;
-    const user = await User.findOne({ phoneNumber }).select("-password");
+    const user = await User.findOne({ phoneNumber }).select(
+      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+    );
 
     if (user) {
       return res.status(200).json({
@@ -322,7 +457,9 @@ exports.updateMe = async (req, res) => {
       await user.save();
 
       const newUser = await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",
@@ -367,7 +504,9 @@ exports.requestFriend = async (req, res) => {
       await friend.save();
 
       const newUser = await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",
@@ -418,7 +557,9 @@ exports.acceptFriend = async (req, res) => {
       await friend.save();
 
       const newUser = await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",
@@ -466,7 +607,9 @@ exports.deleteAcceptFriend = async (req, res) => {
       await friend.save();
 
       const newUser = await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",
@@ -515,7 +658,9 @@ exports.revokeFriend = async (req, res) => {
       await friend.save();
 
       const newUser = await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",
@@ -563,7 +708,9 @@ exports.deleteFriend = async (req, res) => {
       await friend.save();
 
       const newUser = await User.findById(req.user._id)
-        .select("-password")
+        .select(
+          "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+        )
         .populate({
           path: "friendList",
           model: "User",

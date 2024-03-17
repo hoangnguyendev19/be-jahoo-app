@@ -24,9 +24,11 @@ const userSchema = new Schema(
       unique: true,
       length: 10,
     },
-    password: {
+    email: {
       type: String,
       required: true,
+      trim: true,
+      unique: true,
     },
     avatarUrl: {
       type: String,
@@ -54,6 +56,18 @@ const userSchema = new Schema(
         ref: "User",
       },
     ],
+    password: {
+      type: String,
+      required: true,
+    },
+    passwordResetToken: {
+      type: String,
+      default: "",
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: Date.now,
+    },
     createdAt: {
       type: Date,
       default: Date.now,

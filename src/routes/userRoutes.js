@@ -10,6 +10,9 @@ router.post("/login", validator.validateLogin, userController.login);
 router.delete("/logout", authMiddleware.protect, userController.logout);
 // router.post("/refreshToken", userController.requestRefreshToken);
 
+router.post("/forgot-password", userController.forgotPassword);
+router.get("/reset-password/:token", userController.resetPassword);
+
 router
   .route("/me")
   .get(authMiddleware.protect, userController.getMe)

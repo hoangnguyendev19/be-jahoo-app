@@ -11,6 +11,12 @@ router.get(
   conversationController.getAllConversationForUser
 );
 
+router.get(
+  "/same",
+  authMiddleware.protect,
+  conversationController.getConversationByUserIdAndMe
+);
+
 router.post(
   "/",
   validator.validateConversation,

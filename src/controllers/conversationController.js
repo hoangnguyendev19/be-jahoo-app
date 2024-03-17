@@ -34,6 +34,26 @@ exports.getConversationById = async (req, res) => {
   }
 };
 
+// get all conversation of me and userId with type = "GROUP"
+exports.getConversationByUserIdAndMe = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    const conversations = await Conversation.find({
+      type: "GROUP",
+      members: { $all: [req.user._id, userId] },
+    }).populate({
+      path: "members",
+      model: "User",
+      select: "fullName avatarUrl",
+    });
+
+    return res.status(200).json({ status: "success", data: conversations });
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
 exports.createConversation = async (req, res) => {
   try {
     const errors = validationResult(req.body);
@@ -222,7 +242,8 @@ exports.deleteConversation = async (req, res) => {
     const conversation = await Conversation.findById(id);
     if (
       conversation.type === "GROUP" &&
-      conversation.admin.toString() !== req.user._id.toString()
+      conversation.admin.toString() !== req.user._id.toString() &&
+      conversation.members.length > 3
     ) {
       return res.status(401).json({
         status: "fail",
