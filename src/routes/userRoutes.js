@@ -17,7 +17,11 @@ router.get("/reset-password/:token", userController.resetPassword);
 router
   .route("/me")
   .get(authMiddleware.protect, userController.getMe)
-  .put(authMiddleware.protect, userController.updateMe);
+  .put(
+    authMiddleware.protect,
+    validator.validateProfile,
+    userController.updateMe
+  );
 
 router.put(
   "/update-password",

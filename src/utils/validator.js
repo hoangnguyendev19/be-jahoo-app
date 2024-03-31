@@ -44,6 +44,9 @@ exports.validateConversation = [
 ];
 
 exports.validateProfile = [
+  body("fullName", "Full name is not empty").trim().notEmpty(),
   body("gender", "Gender is a boolean type").isBoolean(),
   body("dateOfBirth", "Date of birth have yyyy-mm-dd format").isDate(),
+  body("email", "Email is not empty").trim().notEmpty(),
+  body("email", "Email is valid").isEmail(),
 ];

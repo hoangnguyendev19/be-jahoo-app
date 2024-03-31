@@ -144,7 +144,7 @@ exports.signup = async (req, res) => {
       to: email,
       subject: "Xác nhận đăng ký tài khoản",
       html: `
-        <p>Mã OTP của bạn là: ${otp}</p>
+        <p>Mã OTP của bạn là: ${otp}. Thời hạn hiệu lực trong vòng 30s.</p>
       `,
     };
 
@@ -442,6 +442,7 @@ exports.getMe = async (req, res) => {
 exports.getUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
+    console.log(userId);
     const user = await User.findById(userId).select(
       "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
     );
@@ -495,12 +496,14 @@ exports.updateMe = async (req, res) => {
         .status(422)
         .json({ status: "fail", message: errors.array()[0].msg });
     }
-    const { fullName, gender, dateOfBirth, avatarUrl, coverImage } = req.body;
+    const { fullName, gender, dateOfBirth, avatarUrl, coverImage, email } =
+      req.body;
     let user = await User.findById(req.user._id).select("-password");
 
     if (user) {
       user.fullName = fullName;
       user.gender = gender;
+      user.email = email;
       user.dateOfBirth = dateOfBirth;
       user.avatarUrl = avatarUrl;
       user.coverImage = coverImage;

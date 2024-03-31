@@ -15,6 +15,7 @@ exports.getAllConversationForUser = async (req, res) => {
     });
     return res.status(200).json({ status: "success", data: conversations });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ status: "fail", message: error.message });
   }
 };
