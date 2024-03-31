@@ -1,9 +1,6 @@
-const dotenv = require("dotenv");
-const jwt = require("jsonwebtoken");
 const createHttpError = require("http-errors");
 const User = require("../models/userModel");
-
-dotenv.config();
+const { verifyToken } = require("../utils/jwt");
 
 exports.protect = async (req, res, next) => {
   try {
@@ -22,7 +19,7 @@ exports.protect = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const decoded = verifyToken(token);
 
     const user = await User.findById(decoded.id);
     if (!user) {

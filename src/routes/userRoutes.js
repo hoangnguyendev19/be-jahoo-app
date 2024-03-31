@@ -5,10 +5,11 @@ const validator = require("../utils/validator");
 
 const router = express.Router();
 
-router.post("/signup", validator.validateSignup, userController.signup);
+router.post("/signup", userController.signup);
+router.post("/verify-otp", validator.validateSignup, userController.verifyOtp);
 router.post("/login", validator.validateLogin, userController.login);
 router.delete("/logout", authMiddleware.protect, userController.logout);
-// router.post("/refreshToken", userController.requestRefreshToken);
+router.post("/refresh-token", userController.refreshToken);
 
 router.post("/forgot-password", userController.forgotPassword);
 router.get("/reset-password/:token", userController.resetPassword);

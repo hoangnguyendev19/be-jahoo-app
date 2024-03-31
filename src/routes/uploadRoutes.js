@@ -1,17 +1,11 @@
 const express = require("express");
-const fileUploader = require("../configs/cloudinary");
-
+const { uploadImage, uploadFile } = require("../controllers/uploadController");
+const { uploadS3 } = require("../configs/s3Config");
+const uploadCloud = require("../configs/cloudinary");
 const router = express.Router();
 
-router.post("/upload-file", fileUploader.single("file"), (req, res, next) => {
-  if (!req.file) {
-    next(new Error("No file uploaded!"));
-    return;
-  }
+router.post("/image", uploadCloud.single("image"), uploadImage);
 
-  console.log(req.file);
-
-  return res.json({ status: "success", data: req.file.path });
-});
+router.post("/file", uploadS3.single("file"), uploadFile);
 
 module.exports = router;

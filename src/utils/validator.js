@@ -23,6 +23,8 @@ exports.validateSignup = [
   body("password", "Password has at least ten characters").isLength({
     min: 10,
   }),
+  body("email", "Email is not empty").trim().notEmpty(),
+  body("email", "Email is valid").isEmail(),
 ];
 
 exports.validateMessage = [

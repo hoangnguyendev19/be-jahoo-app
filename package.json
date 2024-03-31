@@ -13,6 +13,7 @@
   "author": "hoangnguyendev19",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.1584.0",
     "axios": "^1.6.6",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
@@ -27,6 +28,8 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.9.12",
+    "otp-generator": "^4.0.1",
+    "redis": "^4.6.13",
     "socket.io": "^4.7.4"
   },
   "devDependencies": {

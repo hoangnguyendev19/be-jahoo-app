@@ -1,59 +1,55 @@
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
-const createHttpError = require("http-errors");
 const User = require("../models/userModel");
+const OTP = require("../models/otpModel");
 const { validationResult } = require("express-validator");
 const transporter = require("../configs/nodemailer");
+const otpGenerator = require("otp-generator");
 
 dotenv.config();
 
-const { signToken, signRefreshToken } = require("../utils/jwt");
-
-let refreshTokenList = [];
+const {
+  signToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  deleteRefreshToken,
+} = require("../utils/jwt");
 
 // refreshToken
-// exports.requestRefreshToken = async (req, res) => {
-//   try {
-//     const refreshToken = req.cookies.refreshToken;
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(401).json({
+        status: "fail",
+        message: "You are not authenticated",
+      });
+    }
 
-//   if (!refreshToken) {
-//     return res
-//       .status(400)
-//       .json({
-//         status: "fail",
-//         message: "You have'nt logged in yet. Please log in to get access!",
-//       });
-//   }
+    const decoded = verifyRefreshToken(refreshToken);
 
-//   if (!refreshTokenList.includes(refreshToken)) {
-//     return res
-//       .status(403)
-//       .json({ status: "fail", message: "Refresh token is invalid" });
-//   }
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User is not found",
+      });
+    }
 
-//   refreshTokenList = refreshTokenList.filter((token) => token !== refreshToken);
+    const accessToken = signToken(user._id);
+    const newRefreshToken = signRefreshToken(user._id);
 
-//   const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-//   const newAccessToken = signToken(decoded.id);
-//   const newRefreshToken = signRefreshToken(decoded.id);
-
-//   refreshTokenList.push(newRefreshToken);
-
-//   res.cookie("refreshToken", newRefreshToken, {
-//     httpOnly: true,
-//     secure: true,
-//     path: "/",
-//     sameSite: "strict",
-//   });
-
-//   res.status(200).json({
-//     status: "success",
-//     accessToken: newAccessToken,
-//   });
-//   } catch (error) {
-//     return res.status(500).json({ status: "fail", message: error.message });
-//   }
-// };
+    return res.status(200).json({
+      status: "success",
+      data: {
+        accessToken,
+        refreshToken: newRefreshToken,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
 
 // Login
 exports.login = async (req, res) => {
@@ -76,7 +72,6 @@ exports.login = async (req, res) => {
     }
 
     const isValidPassword = await user.checkPassword(password, user.password);
-
     if (!isValidPassword) {
       return res
         .status(404)
@@ -84,15 +79,7 @@ exports.login = async (req, res) => {
     }
 
     const accessToken = signToken(user._id);
-    // const refreshToken = signRefreshToken(user._id);
-
-    // refreshTokenList.push(refreshToken);
-    // res.cookie("refreshToken", refreshToken, {
-    //   httpOnly: true,
-    //   secure: true,
-    //   path: "/",
-    //   sameSite: "strict",
-    // });
+    const refreshToken = signRefreshToken(user._id);
 
     user = await User.findOne({ phoneNumber })
       .select(
@@ -119,9 +106,11 @@ exports.login = async (req, res) => {
       data: {
         user,
         accessToken,
+        refreshToken,
       },
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ status: "fail", message: error.message });
   }
 };
@@ -129,24 +118,89 @@ exports.login = async (req, res) => {
 // Register
 exports.signup = async (req, res) => {
   try {
+    const { email, phoneNumber } = req.body;
+    const user = await User.findOne({
+      $or: [{ email }, { phoneNumber }],
+    });
+
+    if (user) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Email or phone number already exists",
+      });
+    }
+
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      upperCase: false,
+      specialChars: false,
+      alphabets: false,
+    });
+
+    await OTP.create({ email, otp });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Xác nhận đăng ký tài khoản",
+      html: `
+        <p>Mã OTP của bạn là: ${otp}</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({
+      status: "success",
+      message: "OTP has been sent to your email",
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res
         .status(422)
         .json({ status: "fail", message: errors.array()[0].msg });
     }
-    const { phoneNumber } = req.body;
-    const userExists = await User.findOne({ phoneNumber });
 
-    if (userExists) {
-      return res
-        .status(400)
-        .json({ status: "fail", message: "User already exists" });
+    const { fullName, phoneNumber, password, email, otp } = req.body;
+
+    const otpArray = await OTP.find({ email });
+
+    if (otpArray.length === 0) {
+      return res.status(404).json({
+        status: "fail",
+        message: "OTP is not found",
+      });
     }
-    const newUser = await User.create(req.body);
+
+    const otpObj = otpArray[otpArray.length - 1];
+
+    const isValidOtp = await otpObj.checkOtp(otp, otpObj.otp);
+
+    if (!isValidOtp) {
+      return res.status(404).json({
+        status: "fail",
+        message: "OTP is invalid",
+      });
+    }
+
+    const newUser = await User.create({
+      fullName,
+      phoneNumber,
+      email,
+      password,
+    });
 
     if (newUser) {
       const accessToken = signToken(newUser._id);
+      const refreshToken = signRefreshToken(newUser._id);
+
       const user = await User.findById(newUser.id)
         .select(
           "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
@@ -169,7 +223,7 @@ exports.signup = async (req, res) => {
 
       return res.status(200).json({
         status: "success",
-        data: { user, accessToken },
+        data: { user, accessToken, refreshToken },
       });
     } else {
       return res
@@ -184,10 +238,8 @@ exports.signup = async (req, res) => {
 // Logout
 exports.logout = async (req, res) => {
   try {
-    // refreshTokenList = refreshTokenList.filter(
-    //   (token) => token !== req.cookies.refreshToken
-    // );
-    // res.clearCookie("refreshToken");
+    deleteRefreshToken(req.user._id);
+
     return res.status(200).json({
       status: "success",
       message: "You logged out successfully!",
