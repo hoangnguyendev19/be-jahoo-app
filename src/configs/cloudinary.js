@@ -13,17 +13,7 @@ const storage = new CloudinaryStorage({
   params: {
     resource_type: "auto",
     folder: "STORAGE",
-    allowedFormats: [
-      "jpg",
-      "png",
-      "mp4",
-      "docx",
-      "pdf",
-      "excel",
-      "pptx",
-      "zip",
-      "rar",
-    ],
+    allowedFormats: ["jpg", "png", "mp4", "jpeg", "gif"],
   },
 });
 
