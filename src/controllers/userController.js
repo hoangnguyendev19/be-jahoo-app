@@ -12,7 +12,7 @@ const {
   signToken,
   signRefreshToken,
   verifyRefreshToken,
-  deleteRefreshToken,
+  removeRefreshToken,
 } = require("../utils/jwt");
 
 // refreshToken
@@ -238,7 +238,7 @@ exports.verifyOtp = async (req, res) => {
 // Logout
 exports.logout = async (req, res) => {
   try {
-    deleteRefreshToken(req.user._id);
+    removeRefreshToken(req.user._id);
 
     return res.status(200).json({
       status: "success",

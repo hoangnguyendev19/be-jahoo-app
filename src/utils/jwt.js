@@ -51,7 +51,7 @@ exports.verifyRefreshToken = (token) => {
   return decoded;
 };
 
-exports.deleteRefreshToken = (id) => {
+exports.removeRefreshToken = (id) => {
   client.del(id.toString(), (error, reply) => {
     if (error) {
       return Error.sendError(res, error);
