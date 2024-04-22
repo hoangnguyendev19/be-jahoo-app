@@ -35,7 +35,6 @@ exports.getConversationById = async (req, res) => {
   }
 };
 
-// get all conversation of me and userId with type = "GROUP"
 exports.getConversationByUserIdAndMe = async (req, res) => {
   try {
     const { userId } = req.query;

@@ -7,10 +7,6 @@ const conversationSchema = new Schema(
       type: String,
       default: "",
     },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
     admin: {
       type: mongoose.Schema.ObjectId,
       ref: "User",

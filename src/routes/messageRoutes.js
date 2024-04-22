@@ -10,6 +10,13 @@ router.get(
   authMiddleware.protect,
   messageController.getAllMessageForConversation
 );
+
+router.get(
+  "/latest",
+  authMiddleware.protect,
+  messageController.getLatestMessageForConversation
+);
+
 router.post(
   "/",
   validator.validateMessage,

@@ -22,6 +22,35 @@ exports.getAllMessageForConversation = async (req, res) => {
   }
 };
 
+exports.getLatestMessageForConversation = async (req, res) => {
+  try {
+    const { conversation } = req.query;
+    const message = await Message.findOne({
+      conversationId: conversation,
+    })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "senderId",
+        model: "User",
+        select: "fullName avatarUrl",
+      });
+
+    if (!message) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Message not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: message,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
 exports.createMessage = async (req, res) => {
   try {
     const errors = validationResult(req.body);

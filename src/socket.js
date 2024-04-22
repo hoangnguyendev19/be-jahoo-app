@@ -50,54 +50,76 @@ const socket = (io) => {
     });
 
     socket.on("revoke_message", async ({ messageId, userId }) => {
-      let message = await Message.findById(messageId);
+      try {
+        let message = await Message.findById(messageId);
 
-      if (message && message.senderId.toString() === userId) {
-        message.isRevoked = true;
-        await message.save();
-        io.to(message.conversationId.toString()).emit(
-          "revoke_message",
-          messageId
-        );
+        if (message && message.senderId.toString() === userId) {
+          message.isRevoked = true;
+          await message.save();
+          io.to(message.conversationId.toString()).emit(
+            "revoke_message",
+            messageId
+          );
+        }
+      } catch (error) {
+        console.error("Error: ", error);
       }
     });
 
     socket.on("like_message", async ({ messageId, userId }) => {
-      let message = await Message.findById(messageId);
+      try {
+        let message = await Message.findById(messageId);
 
-      if (message) {
-        message.likes.push(userId);
-        await message.save();
+        if (message) {
+          message.likes.push(userId);
+          await message.save();
 
-        io.to(message.conversationId.toString()).emit(
-          "like_message",
-          messageId
-        );
+          io.to(message.conversationId.toString()).emit(
+            "like_message",
+            messageId
+          );
+        }
+      } catch (error) {
+        console.error("Error: ", error);
       }
     });
 
     socket.on("unlike_message", async ({ messageId, userId }) => {
-      let message = await Message.findById(messageId);
+      try {
+        let message = await Message.findById(messageId);
 
-      if (message) {
-        message.likes = message.likes.filter(
-          (uid) => uid.toString() !== userId
-        );
-        await message.save();
+        if (message) {
+          message.likes = message.likes.filter(
+            (uid) => uid.toString() !== userId
+          );
+          await message.save();
 
-        io.to(message.conversationId.toString()).emit(
-          "unlike_message",
-          messageId
-        );
+          io.to(message.conversationId.toString()).emit(
+            "unlike_message",
+            messageId
+          );
+        }
+      } catch (error) {
+        console.error("Error: ", error);
       }
     });
 
     // Typing event
-    socket.on("typing", async ({ conversationId, userId }) => {
-      const user = await User.findById(userId).select("fullName");
-      console.log("User ", user.fullName, " is typing");
+    socket.on("typing_start", async ({ conversationId, userId }) => {
+      try {
+        const user = await User.findById(userId).select("fullName");
+        console.log("User ", user.fullName, " is typing");
+        if (userOnline.has(userId)) {
+          io.to(conversationId).emit("typing", user.fullName);
+        }
+      } catch (error) {
+        console.error("Error: ", error);
+      }
+    });
+
+    socket.on("typing_end", ({ conversationId, userId }) => {
       if (userOnline.has(userId)) {
-        io.to(conversationId).emit("typing", user.fullName);
+        io.to(conversationId).emit("typing", "");
       }
     });
 
@@ -584,14 +606,16 @@ const socket = (io) => {
             return;
           }
 
+          const oldAdminId = conversation.admin.toString();
+
           conversation.admin = userId;
           await conversation.save();
 
           // send notification to other members in conversation
           conversation.members.forEach((member) => {
-            if (member.id.toString() === userId) return;
-            if (userOnline.has(member.id.toString())) {
-              io.emit(member.id.toString(), {
+            if (member.toString() === oldAdminId) return;
+            if (userOnline.has(member.toString())) {
+              io.emit(member.toString(), {
                 code: "receive_assign_admin",
                 name: conversation.name,
                 member: user.fullName,
@@ -640,15 +664,21 @@ const socket = (io) => {
 
           // send notification to other members in conversation
           conversation.members.forEach((member) => {
-            if (member.id.toString() === conversation.admin.toString()) return;
-            if (userOnline.has(member.id.toString())) {
-              io.emit(member.id.toString(), {
+            if (member.toString() === conversation.admin.toString()) return;
+            if (userOnline.has(member.toString())) {
+              io.emit(member.toString(), {
                 code: "receive_remove_member",
                 name: conversation.name,
                 member: user.fullName,
                 data: { conversationId, userId },
               });
             }
+          });
+
+          io.emit(userId, {
+            code: "receive_leave_group",
+            name: conversation.name,
+            data: conversationId,
           });
 
           io.to(socket.id).emit("send_remove_member", {
@@ -677,43 +707,65 @@ const socket = (io) => {
           return;
         }
 
-        if (conversation.admin.toString() === userId) {
-          io.to(socket.io).emit("send_remove_yourself", {
-            status: "fail",
-            message:
-              "You should assign admin for other before removing this conversation!",
+        if (conversation.members.length <= 3) {
+          const conversation = await Conversation.findById(
+            conversationId
+          ).populate({
+            path: "admin",
+            model: "User",
+            select: "fullName",
           });
-          return;
-        }
 
-        const user = await User.findById(userId);
+          // send notification to other members in conversation
+          conversation.members.forEach((member) => {
+            if (member.toString() === userId) return;
+            if (userOnline.has(member.toString())) {
+              io.emit(member.toString(), {
+                code: "receive_delete_group",
+                sender: conversation.admin.fullName,
+                name: conversation.name,
+                data: conversationId,
+              });
+            }
+          });
 
-        conversation.members = conversation.members.filter(
-          (memId) => memId.toString() !== userId
-        );
-        if (conversation.members.length === 1) {
-          await Conversation.findByIdAndDelete(id);
+          await Message.deleteMany({ conversationId });
+          await Conversation.findByIdAndDelete(conversationId);
+
+          io.to(socket.id).emit("send_delete_group", {
+            status: "success",
+            data: conversationId,
+          });
         } else {
-          await conversation.save();
-        }
+          const user = await User.findById(userId);
 
-        // send notification to other members in conversation
-        conversation.members.forEach((member) => {
-          if (member.id.toString() === userId) return;
-          if (userOnline.has(member.id.toString())) {
-            io.emit(member.id.toString(), {
-              code: "receive_remove_yourself",
-              sender: user.fullName,
-              name: conversation.name,
-              data: { conversationId, userId },
-            });
+          conversation.members = conversation.members.filter(
+            (memId) => memId.toString() !== userId
+          );
+          if (conversation.members.length === 1) {
+            await Conversation.findByIdAndDelete(id);
+          } else {
+            await conversation.save();
           }
-        });
 
-        io.to(socket.id).emit("send_remove_yourself", {
-          status: "success",
-          data: conversationId,
-        });
+          const newConversation = await Conversation.findById(conversationId);
+          // send notification to other members in conversation
+          newConversation.members.forEach((member) => {
+            if (userOnline.has(member.toString())) {
+              io.emit(member.toString(), {
+                code: "receive_remove_yourself",
+                sender: user.fullName,
+                name: conversation.name,
+                data: { conversationId, userId },
+              });
+            }
+          });
+
+          io.to(socket.id).emit("send_remove_yourself", {
+            status: "success",
+            data: conversationId,
+          });
+        }
       } catch (error) {
         console.error("Error: ", error);
       }
@@ -740,20 +792,40 @@ const socket = (io) => {
             conversation.members.push(userId);
             await conversation.save();
 
-            const senderName = await User.findById(senderId).select("fullName");
+            const sendUser = await User.findById(senderId).select("fullName");
 
             // send notification to other members in conversation
             conversation.members.forEach((member) => {
-              if (member.id.toString() === senderId) return;
-              if (userOnline.has(member.id.toString())) {
-                io.emit(member.id.toString(), {
+              if (
+                member.toString() === senderId ||
+                member.toString() === userId
+              )
+                return;
+              console.log("member: ", member.toString());
+              if (userOnline.has(member.toString())) {
+                io.emit(member.toString(), {
                   code: "receive_add_member",
-                  sender: senderName,
+                  sender: sendUser.fullName,
                   name: conversation.name,
                   member: user.fullName,
                   data: { conversationId, user },
                 });
               }
+            });
+
+            const newConversation = await Conversation.findById(
+              conversation.id
+            ).populate({
+              path: "members",
+              model: "User",
+              select: "fullName avatarUrl",
+            });
+
+            io.emit(userId, {
+              code: "receive_join_group",
+              sender: sendUser.fullName,
+              name: conversation.name,
+              data: newConversation,
             });
 
             io.to(socket.id).emit("send_add_member", {
@@ -776,23 +848,15 @@ const socket = (io) => {
       "send_delete_conversation",
       async ({ conversationId, userId }) => {
         try {
-          const conversation = await Conversation.findById(
-            conversationId
-          ).populate({
-            path: "members",
-            model: "User",
-            select: "fullName",
-          });
+          const conversation = await Conversation.findById(conversationId);
 
-          const user = conversation.members.find(
-            (mem) => mem.id.toString() === userId
-          );
+          const user = await User.findById(userId).select("fullName");
 
           // send notification to other members in conversation
           conversation.members.forEach((member) => {
-            if (member.id.toString() === userId) return;
-            if (userOnline.has(member.id.toString())) {
-              io.emit(member.id.toString(), {
+            if (member.toString() === userId) return;
+            if (userOnline.has(member.toString())) {
+              io.emit(member.toString(), {
                 code: "receive_delete_conversation",
                 sender: user.fullName,
                 data: conversationId,
@@ -815,23 +879,19 @@ const socket = (io) => {
 
     socket.on("send_delete_group", async (conversationId) => {
       try {
-        const conversation = await Conversation.findById(conversationId)
-          .populate({
-            path: "admin",
-            model: "User",
-            select: "fullName",
-          })
-          .populate({
-            path: "members",
-            model: "User",
-            select: "fullName",
-          });
+        const conversation = await Conversation.findById(
+          conversationId
+        ).populate({
+          path: "admin",
+          model: "User",
+          select: "fullName",
+        });
 
         // send notification to other members in conversation
         conversation.members.forEach((member) => {
-          if (member.id.toString() === conversation.admin.id.toString()) return;
-          if (userOnline.has(member.id.toString())) {
-            io.emit(member.id.toString(), {
+          if (member.toString() === conversation.admin.id.toString()) return;
+          if (userOnline.has(member.toString())) {
+            io.emit(member.toString(), {
               code: "receive_delete_group",
               sender: conversation.admin.fullName,
               name: conversation.name,
