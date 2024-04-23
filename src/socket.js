@@ -182,8 +182,6 @@ const socket = (io) => {
             });
           }
 
-          console.log("userOnline: ", userOnline.keys());
-
           io.to(socket.id).emit("send_request_friend", {
             status: "success",
             data: newUser,
@@ -801,7 +799,7 @@ const socket = (io) => {
                 member.toString() === userId
               )
                 return;
-              console.log("member: ", member.toString());
+
               if (userOnline.has(member.toString())) {
                 io.emit(member.toString(), {
                   code: "receive_add_member",

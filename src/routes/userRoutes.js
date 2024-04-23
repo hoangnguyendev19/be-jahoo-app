@@ -59,6 +59,14 @@ router.put(
   userController.deleteFriend
 );
 
+router.get("/admin", authMiddleware.protect, userController.getAllUsers);
+router.post("/admin", authMiddleware.protect, userController.createUser);
+router.put("/admin/:userId", authMiddleware.protect, userController.updateUser);
+router.delete(
+  "/admin/:userId",
+  authMiddleware.protect,
+  userController.deleteUser
+);
 router.get("/:userId", userController.getUserProfile);
 router.get("/", userController.getUserProfileByPhoneNumber);
 

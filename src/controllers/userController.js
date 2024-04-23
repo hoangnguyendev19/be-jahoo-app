@@ -144,7 +144,7 @@ exports.signup = async (req, res) => {
       to: email,
       subject: "Xác nhận đăng ký tài khoản",
       html: `
-        <p>Mã OTP của bạn là: ${otp}. Thời hạn hiệu lực trong vòng 30s.</p>
+        <p>Mã OTP của bạn là: ${otp}. Thời hạn hiệu lực trong vòng 50s.</p>
       `,
     };
 
@@ -373,29 +373,6 @@ exports.resetPassword = async (req, res) => {
       status: "fail",
       message: "Failed to send password reset confirmation email",
     });
-  }
-};
-
-// Get all users
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find().select(
-      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
-    );
-
-    if (users) {
-      return res.status(200).json({
-        status: "success",
-        data: users,
-      });
-    } else {
-      return res.status(404).json({
-        status: "fail",
-        message: "Users are not found",
-      });
-    }
-  } catch (error) {
-    return res.status(500).json({ status: "fail", message: error.message });
   }
 };
 
@@ -790,6 +767,105 @@ exports.deleteFriend = async (req, res) => {
       return res.status(404).json({
         status: "fail",
         message: "You deleted this friend failure!",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+/* ------------- Admin ------------- */
+
+// Get all users
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select(
+      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+    );
+
+    if (users) {
+      return res.status(200).json({
+        status: "success",
+        data: users,
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "Users are not found",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+exports.createUser = async (req, res) => {
+  try {
+    const nUser = {
+      ...req.body,
+      password: "12345678",
+    };
+    const user = await User.create(nUser);
+
+    const newUser = await User.findById(user._id).select(
+      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+    );
+    if (user) {
+      return res.status(201).json({
+        status: "success",
+        data: newUser,
+      });
+    } else {
+      return res.status(400).json({
+        status: "fail",
+        message: "User is invalid",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findByIdAndUpdate(userId, req.body, {
+      new: true,
+      runValidators: true,
+    }).select(
+      "-password -passwordResetToken -passwordResetExpires -createdAt -updatedAt"
+    );
+
+    if (user) {
+      return res.status(200).json({
+        status: "success",
+        data: user,
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "User is not found",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: "fail", message: error.message });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findByIdAndDelete(userId);
+
+    if (user) {
+      return res.status(200).json({
+        status: "success",
+        message: "User is deleted",
+      });
+    } else {
+      return res.status(404).json({
+        status: "fail",
+        message: "User is not found",
       });
     }
   } catch (error) {
