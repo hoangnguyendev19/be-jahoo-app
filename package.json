@@ -1,7 +1,7 @@
 {
-  "name": "backend-zalo-app",
+  "name": "backend-jahoo-app",
   "version": "1.0.0",
-  "description": "backend-zalo-app",
+  "description": "backend-jahoo-app",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
